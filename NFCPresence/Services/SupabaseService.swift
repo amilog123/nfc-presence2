@@ -47,6 +47,28 @@ class SupabaseService: ObservableObject {
         try validate(response)
     }
 
+    // MARK: - 1b. Login email + password
+
+    func signInWithPassword(email: String, password: String) async throws {
+        let url = try makeURL("/auth/v1/token", query: ["grant_type": "password"])
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        baseHeaders.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "email": email,
+            "password": password
+        ])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let token = json?["access_token"] as? String else { throw SupabaseError.invalidResponse }
+        authToken = token
+        if let user = json?["user"] as? [String: Any],
+           let idStr = user["id"] as? String {
+            studentID = UUID(uuidString: idStr)
+        }
+    }
+
     // MARK: - 2. Sessions du jour
 
     func getSessions() async throws -> [SessionDTO] {

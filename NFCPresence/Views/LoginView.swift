@@ -1,25 +1,17 @@
-// LoginView.swift - Vue de connexion étudiant / enseignant
-
+// LoginView.swift - Connexion email + mot de passe
 import SwiftUI
 
 struct LoginView: View {
     @State private var email = ""
+    @State private var password = ""
     @State private var isLoading = false
-    @State private var linkSent = false
     @State private var errorMessage: String?
 
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
-
             header
-
-            if linkSent {
-                confirmation
-            } else {
-                form
-            }
-
+            form
             Spacer()
         }
         .padding(.horizontal, 32)
@@ -32,8 +24,6 @@ struct LoginView: View {
             Text(errorMessage ?? "")
         }
     }
-
-    // MARK: - Sous-vues
 
     private var header: some View {
         VStack(spacing: 8) {
@@ -58,13 +48,17 @@ struct LoginView: View {
                 .padding()
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
 
-            Button(action: sendLink) {
+            SecureField("Mot de passe", text: $password)
+                .textContentType(.password)
+                .padding()
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+
+            Button(action: signIn) {
                 Group {
                     if isLoading {
-                        ProgressView()
-                            .tint(.white)
+                        ProgressView().tint(.white)
                     } else {
-                        Text("Recevoir le lien de connexion")
+                        Text("Se connecter")
                             .fontWeight(.semibold)
                     }
                 }
@@ -72,33 +66,15 @@ struct LoginView: View {
                 .frame(height: 50)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(email.isEmpty || isLoading)
+            .disabled(email.isEmpty || password.isEmpty || isLoading)
         }
     }
 
-    private var confirmation: some View {
-        VStack(spacing: 12) {
-            Text("Vérifiez vos emails")
-                .font(.title2.bold())
-            Text("Un lien de connexion a été envoyé à\n**\(email)**")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button("Utiliser une autre adresse") {
-                withAnimation { linkSent = false; email = "" }
-            }
-            .font(.footnote)
-            .padding(.top, 8)
-        }
-    }
-
-    // MARK: - Actions
-
-    private func sendLink() {
+    private func signIn() {
         isLoading = true
         Task {
             do {
-                try await SupabaseService.shared.login(email: email)
-                withAnimation { linkSent = true }
+                try await SupabaseService.shared.signInWithPassword(email: email, password: password)
             } catch {
                 errorMessage = error.localizedDescription
             }
