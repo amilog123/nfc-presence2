@@ -1,10 +1,8 @@
 // SessionListView.swift - Liste des sessions de cours disponibles
-
 import SwiftUI
 
 struct SessionListView: View {
     @State private var sessions: [SessionDTO] = []
-    @State private var signedIDs: Set<UUID> = []
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -41,19 +39,10 @@ struct SessionListView: View {
         .task { await loadData() }
     }
 
-    // MARK: - Sous-vues
-
     private var list: some View {
         List(sessions, id: \.id) { session in
-            let signed = signedIDs.contains(session.id)
-            Group {
-                if signed {
-                    SessionRow(session: session, signed: true)
-                } else {
-                    NavigationLink(destination: NFCScanView(session: session)) {
-                        SessionRow(session: session, signed: false)
-                    }
-                }
+            NavigationLink(destination: NFCScanView(session: session)) {
+                SessionRow(session: session)
             }
         }
         .listStyle(.insetGrouped)
@@ -74,28 +63,19 @@ struct SessionListView: View {
         .padding()
     }
 
-    // MARK: - Chargement
-
     private func loadData() async {
         isLoading = true
         defer { isLoading = false }
         do {
-            async let fetchedSessions = SupabaseService.shared.getSessions()
-            async let fetchedHistory  = SupabaseService.shared.getHistory()
-            let (s, h) = try await (fetchedSessions, fetchedHistory)
-            sessions  = s
-            signedIDs = Set(h.map(\.sessionID))
+            sessions = try await SupabaseService.shared.getSessions()
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 }
 
-// MARK: - SessionRow
-
 private struct SessionRow: View {
     let session: SessionDTO
-    let signed: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -111,29 +91,12 @@ private struct SessionRow: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            SignedBadge(signed: signed)
         }
         .padding(.vertical, 4)
     }
 
     private var creneauLabel: String {
         session.creneau == "matin" ? "Matin" : "Après-midi"
-    }
-}
-
-// MARK: - SignedBadge
-
-private struct SignedBadge: View {
-    let signed: Bool
-
-    var body: some View {
-        Text(signed ? "Signé" : "Non signé")
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(signed ? Color.green.opacity(0.15) : Color.secondary.opacity(0.12))
-            .foregroundStyle(signed ? .green : .secondary)
-            .clipShape(Capsule())
     }
 }
 
