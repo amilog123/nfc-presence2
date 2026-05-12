@@ -37,9 +37,9 @@ class NFCService: NSObject, ObservableObject {
 #if !targetEnvironment(simulator)
 extension NFCService: NFCTagReaderSessionDelegate {
 
-    nonisolated func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {}
+    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {}
 
-    nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+    func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         let nfcError = error as? NFCReaderError
         guard nfcError?.code != .readerSessionInvalidationErrorUserCanceled else { return }
         Task { @MainActor in
@@ -48,7 +48,7 @@ extension NFCService: NFCTagReaderSessionDelegate {
         }
     }
 
-    nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetectTags tags: [NFCTag]) {
+    func tagReaderSession(_ session: NFCTagReaderSession, didDetectTags tags: [NFCTag]) {
         guard let tag = tags.first else { return }
 
         session.connect(to: tag) { error in
